@@ -1,165 +1,191 @@
-package com.example.deviceadmindemo;
+package com.example.deviceowner;
 
 import android.app.admin.DevicePolicyManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-/**
- * Главный экран приложения.
- *
- * Показывает:
- * - Статус Device Admin (активен/не активен)
- * - Кнопку активации/деактивации
- * - Кнопку блокировки экрана (работает только если Admin активен)
- */
 public class MainActivity extends AppCompatActivity {
 
-    private DevicePolicyManager devicePolicyManager;
+    private DevicePolicyManager dpm;
     private ComponentName adminComponent;
-
-    // Код запроса для onActivityResult
     private static final int REQUEST_ENABLE_ADMIN = 1;
-
     private TextView statusText;
-    private Button btnToggleAdmin;
-    private Button btnLockScreen;
-    private Button btnCameraDisable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Инициализация системного сервиса
-        devicePolicyManager = (DevicePolicyManager)
-                getSystemService(Context.DEVICE_POLICY_SERVICE);
-
-        // Компонент нашего AdminReceiver
+        dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         adminComponent = new ComponentName(this, AdminReceiver.class);
+        statusText = findViewById(R.id.statusText);
 
-        // UI элементы
-        statusText      = findViewById(R.id.statusText);
-        btnToggleAdmin  = findViewById(R.id.btnToggleAdmin);
-        btnLockScreen   = findViewById(R.id.btnLockScreen);
-        btnCameraDisable = findViewById(R.id.btnCameraDisable);
+        // Активация Device Admin
+        findViewById(R.id.btnActivateAdmin).setOnClickListener(v -> activateAdmin());
 
-        // Кнопка активации/деактивации
-        btnToggleAdmin.setOnClickListener(v -> {
-            if (isAdminActive()) {
-                deactivateAdmin();
-            } else {
-                activateAdmin();
+        // Блокировка экрана
+        findViewById(R.id.btnLock).setOnClickListener(v -> {
+            if (checkAdmin()) dpm.lockNow();
+        });
+
+        // Смена пароля (только Device Owner)
+        findViewById(R.id.btnSetPassword).setOnClickListener(v -> {
+            if (!checkOwner()) return;
+            EditText input = new EditText(this);
+            input.setHint("Новый пин (мин. 4 символа)");
+            input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER |
+                    android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+            new AlertDialog.Builder(this)
+                    .setTitle("Установить пароль")
+                    .setView(input)
+                    .setPositiveButton("Установить", (d, w) -> {
+                        String pass = input.getText().toString();
+                        if (pass.length() >= 4) {
+                            try {
+                                dpm.resetPassword(pass, 0);
+                                toast("Пароль установлен: " + pass);
+                            } catch (Exception e) {
+                                toast("Ошибка: " + e.getMessage());
+                            }
+                        } else {
+                            toast("Минимум 4 символа");
+                        }
+                    })
+                    .setNegativeButton("Отмена", null)
+                    .show();
+        });
+
+        // Отключить/включить камеру
+        findViewById(R.id.btnCamera).setOnClickListener(v -> {
+            if (!checkOwner()) return;
+            boolean disabled = dpm.getCameraDisabled(adminComponent);
+            dpm.setCameraDisabled(adminComponent, !disabled);
+            toast("Камера: " + (disabled ? "ВКЛЮЧЕНА" : "ОТКЛЮЧЕНА"));
+            updateUI();
+        });
+
+        // Запрет скриншотов
+        findViewById(R.id.btnScreenshot).setOnClickListener(v -> {
+            if (!checkOwner()) return;
+            boolean disabled = dpm.getScreenCaptureDisabled(adminComponent);
+            dpm.setScreenCaptureDisabled(adminComponent, !disabled);
+            toast("Скриншоты: " + (disabled ? "РАЗРЕШЕНЫ" : "ЗАПРЕЩЕНЫ"));
+            updateUI();
+        });
+
+        // Автовыдача разрешения микрофона себе
+        findViewById(R.id.btnGrantMic).setOnClickListener(v -> {
+            if (!checkOwner()) return;
+            try {
+                dpm.setPermissionGrantState(
+                        adminComponent,
+                        getPackageName(),
+                        android.Manifest.permission.RECORD_AUDIO,
+                        DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED
+                );
+                toast("Микрофон выдан без диалога");
+            } catch (Exception e) {
+                toast("Ошибка: " + e.getMessage());
             }
         });
 
-        // Кнопка блокировки экрана
-        btnLockScreen.setOnClickListener(v -> {
-            if (isAdminActive()) {
-                // Мгновенная блокировка экрана — без задержки
-                devicePolicyManager.lockNow();
-            } else {
-                statusText.setText("Сначала активируйте администратора");
-            }
+        // Перезагрузка устройства
+        findViewById(R.id.btnReboot).setOnClickListener(v -> {
+            if (!checkOwner()) return;
+            new AlertDialog.Builder(this)
+                    .setTitle("Перезагрузка")
+                    .setMessage("Перезагрузить устройство?")
+                    .setPositiveButton("Да", (d, w) -> {
+                        try {
+                            dpm.reboot(adminComponent);
+                        } catch (Exception e) {
+                            toast("Ошибка: " + e.getMessage());
+                        }
+                    })
+                    .setNegativeButton("Нет", null)
+                    .show();
         });
 
-        // Кнопка отключения камеры
-        btnCameraDisable.setOnClickListener(v -> {
-            if (isAdminActive()) {
-                // Проверяем текущее состояние и переключаем
-                boolean cameraDisabled = devicePolicyManager
-                        .getCameraDisabled(adminComponent);
-                devicePolicyManager.setCameraDisabled(adminComponent, !cameraDisabled);
-                updateUI();
-            } else {
-                statusText.setText("Сначала активируйте администратора");
-            }
+        // Сброс к заводским
+        findViewById(R.id.btnWipe).setOnClickListener(v -> {
+            if (!checkAdmin()) return;
+            new AlertDialog.Builder(this)
+                    .setTitle("⚠️ СБРОС К ЗАВОДСКИМ")
+                    .setMessage("ВСЕ ДАННЫЕ БУДУТ УДАЛЕНЫ!\nЭто необратимо. Продолжить?")
+                    .setPositiveButton("СБРОСИТЬ", (d, w) -> dpm.wipeData(0))
+                    .setNegativeButton("Отмена", null)
+                    .show();
+        });
+
+        // Деактивировать Admin
+        findViewById(R.id.btnDeactivate).setOnClickListener(v -> {
+            dpm.removeActiveAdmin(adminComponent);
+            updateUI();
         });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Обновляем UI каждый раз когда возвращаемся на экран
         updateUI();
     }
 
-    /**
-     * Проверяем активен ли Device Admin
-     */
-    private boolean isAdminActive() {
-        return devicePolicyManager.isAdminActive(adminComponent);
+    private boolean checkAdmin() {
+        if (!dpm.isAdminActive(adminComponent)) {
+            toast("Сначала активируйте Device Admin");
+            return false;
+        }
+        return true;
     }
 
-    /**
-     * Открываем системный диалог активации Device Admin
-     */
+    private boolean checkOwner() {
+        if (!dpm.isDeviceOwnerApp(getPackageName())) {
+            toast("Требуется Device Owner!\nВыполни в LADB:\ndpm set-device-owner " +
+                    getPackageName() + "/.AdminReceiver");
+            return false;
+        }
+        return true;
+    }
+
     private void activateAdmin() {
         Intent intent = new Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN);
         intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent);
-        intent.putExtra(
-                DevicePolicyManager.EXTRA_ADD_EXPLANATION,
-                "Это демо-приложение Device Admin API.\n" +
-                "После активации приложение сможет:\n" +
-                "- Блокировать экран\n" +
-                "- Отключать камеру\n" +
-                "- Следить за попытками разблокировки"
-        );
+        intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                "Device Owner Demo — полный контроль над устройством");
         startActivityForResult(intent, REQUEST_ENABLE_ADMIN);
     }
 
-    /**
-     * Деактивируем Device Admin программно
-     */
-    private void deactivateAdmin() {
-        devicePolicyManager.removeActiveAdmin(adminComponent);
-        updateUI();
+    private void updateUI() {
+        boolean isAdmin = dpm.isAdminActive(adminComponent);
+        boolean isOwner = dpm.isDeviceOwnerApp(getPackageName());
+        boolean cameraOff = isAdmin && dpm.getCameraDisabled(adminComponent);
+        boolean screenshotOff = isOwner && dpm.getScreenCaptureDisabled(adminComponent);
+
+        statusText.setText(
+                "Device Admin:  " + (isAdmin ? "✅ АКТИВЕН" : "❌ не активен") + "\n" +
+                "Device Owner:  " + (isOwner ? "✅ АКТИВЕН" : "❌ не активен") + "\n\n" +
+                "Камера:        " + (cameraOff ? "🚫 отключена" : "✅ включена") + "\n" +
+                "Скриншоты:     " + (screenshotOff ? "🚫 запрещены" : "✅ разрешены") + "\n\n" +
+                (isOwner ? "Все функции доступны" :
+                        "Device Owner недоступен\nИспользуй LADB:\ndpm set-device-owner " +
+                        getPackageName() + "/.AdminReceiver")
+        );
     }
 
-    /**
-     * Обновляем UI в зависимости от статуса
-     */
-    private void updateUI() {
-        boolean active = isAdminActive();
-
-        if (active) {
-            boolean cameraDisabled = devicePolicyManager
-                    .getCameraDisabled(adminComponent);
-
-            statusText.setText(
-                    "Статус: АКТИВЕН\n\n" +
-                    "Камера: " + (cameraDisabled ? "ОТКЛЮЧЕНА" : "включена") + "\n" +
-                    "Удалить приложение: НЕВОЗМОЖНО\n" +
-                    "Принудительная блокировка: доступна"
-            );
-            btnToggleAdmin.setText("Деактивировать Admin");
-            btnLockScreen.setEnabled(true);
-            btnCameraDisable.setEnabled(true);
-            btnCameraDisable.setText(cameraDisabled
-                    ? "Включить камеру" : "Отключить камеру");
-        } else {
-            statusText.setText(
-                    "Статус: не активен\n\n" +
-                    "Приложение работает как обычное.\n" +
-                    "Активируйте администратора чтобы\n" +
-                    "разблокировать функции."
-            );
-            btnToggleAdmin.setText("Активировать Admin");
-            btnLockScreen.setEnabled(false);
-            btnCameraDisable.setEnabled(false);
-            btnCameraDisable.setText("Отключить камеру");
-        }
+    private void toast(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_ENABLE_ADMIN) {
-            updateUI();
-        }
+    protected void onActivityResult(int req, int res, Intent data) {
+        super.onActivityResult(req, res, data);
+        if (req == REQUEST_ENABLE_ADMIN) updateUI();
     }
 }
