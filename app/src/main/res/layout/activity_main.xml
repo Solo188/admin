@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal"
+    android:background="#0D1117">
+
+    <!-- Заголовок -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Device Admin Demo"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="#58A6FF"
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Демонстрация Device Admin API"
+        android:textSize="13sp"
+        android:textColor="#8B949E"
+        android:layout_marginBottom="32dp"/>
+
+    <!-- Блок статуса -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#161B22"
+        android:padding="16dp"
+        android:layout_marginBottom="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="СТАТУС"
+            android:textSize="11sp"
+            android:textColor="#8B949E"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Загрузка..."
+            android:textSize="14sp"
+            android:textColor="#E6EDF3"
+            android:lineSpacingExtra="4dp"/>
+
+    </LinearLayout>
+
+    <!-- Кнопка активации -->
+    <Button
+        android:id="@+id/btnToggleAdmin"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Активировать Admin"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#238636"
+        android:layout_marginBottom="12dp"/>
+
+    <!-- Кнопка блокировки экрана -->
+    <Button
+        android:id="@+id/btnLockScreen"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Заблокировать экран"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#1F6FEB"
+        android:layout_marginBottom="12dp"
+        android:enabled="false"/>
+
+    <!-- Кнопка камеры -->
+    <Button
+        android:id="@+id/btnCameraDisable"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="Отключить камеру"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="#B62324"
+        android:enabled="false"/>
+
+</LinearLayout>
