@@ -1,22 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Этот файл определяет что именно приложение
-    будет делать как Device Admin.
-    Пользователь видит этот список при активации.
--->
 <device-admin>
     <uses-policies>
-        <!-- Блокировать экран принудительно -->
         <force-lock />
-        <!-- Политика паролей -->
         <limit-password />
-        <!-- Следить за попытками разблокировки -->
         <watch-login />
-        <!-- Сброс к заводским настройкам -->
         <wipe-data />
-        <!-- Отключить камеру системно -->
         <disable-camera />
-        <!-- Отключить скриншоты -->
         <disable-keyguard-features />
+        <reset-password />
     </uses-policies>
 </device-admin>
