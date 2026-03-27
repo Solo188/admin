@@ -1,0 +1,18 @@
+# Android
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+
+# APK файлы — не коммитим бинарники
+*.apk
+*.aab
+
+# Keystore — никогда не коммитим ключи!
+*.jks
+*.keystore
