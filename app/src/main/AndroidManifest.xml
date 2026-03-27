@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.deviceadmindemo">
+    package="com.example.deviceowner">
+
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -10,8 +13,9 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
 
-        <!-- Главная Activity -->
-        <activity android:name=".MainActivity"
+        <!-- Главный экран -->
+        <activity
+            android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -19,7 +23,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Device Admin Receiver — сердце приложения -->
+        <!-- Device Admin / Device Owner Receiver -->
         <receiver
             android:name=".AdminReceiver"
             android:exported="true"
@@ -31,6 +35,15 @@
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
                 <action android:name="android.app.action.DEVICE_ADMIN_DISABLED" />
                 <action android:name="android.app.action.DEVICE_ADMIN_DISABLE_REQUESTED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Автозапуск после перезагрузки -->
+        <receiver
+            android:name=".BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
