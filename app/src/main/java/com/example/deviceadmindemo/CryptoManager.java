@@ -12,22 +12,6 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * AES-256-GCM шифрование файлов.
- *
- * Как работает:
- * 1. Из пароля генерируется ключ через PBKDF2 (100_000 итераций)
- * 2. Генерируется случайная соль (16 байт) и IV (12 байт)
- * 3. Файл шифруется AES-256-GCM
- * 4. Соль + IV записываются в начало .enc файла
- *
- * При расшифровке:
- * 1. Читаем соль и IV из начала файла
- * 2. Восстанавливаем ключ из пароля + соли
- * 3. Расшифровываем
- *
- * Без правильного пароля расшифровка невозможна.
- */
 public class CryptoManager {
 
     private static final String ALGORITHM     = "AES/GCM/NoPadding";
@@ -40,102 +24,108 @@ public class CryptoManager {
     public  static final String ENC_EXTENSION = ".enc";
 
     /**
-     * Зашифровать файл.
-     * Создаёт файл с расширением .enc рядом с оригиналом.
-     * Оригинал НЕ удаляет — удаляй сам после проверки.
+     * Зашифровать файл — .enc создаётся В ТОЙ ЖЕ папке что и оригинал.
+     * Оригинал безопасно удаляется.
+     *
+     * Пример:
+     * /DCIM/Camera/photo.jpg  →  /DCIM/Camera/photo.jpg.enc
+     * оригинал удалён
      */
-    public static void encrypt(File inputFile, File outputFile, String password)
-            throws Exception {
+    public static File encryptInPlace(File inputFile, String password) throws Exception {
+        // .enc файл рядом с оригиналом
+        File outputFile = new File(inputFile.getParent(),
+                inputFile.getName() + ENC_EXTENSION);
 
-        // Генерируем случайную соль и IV
+        // Соль и IV
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[SALT_SIZE];
         byte[] iv   = new byte[IV_SIZE];
         random.nextBytes(salt);
         random.nextBytes(iv);
 
-        // Генерируем ключ из пароля
-        SecretKey key = deriveKey(password, salt);
-
-        // Шифруем
-        Cipher cipher = Cipher.getInstance(ALGORITHM);
+        SecretKey key    = deriveKey(password, salt);
+        Cipher    cipher = Cipher.getInstance(ALGORITHM);
         cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_SIZE, iv));
 
         try (FileInputStream  fis = new FileInputStream(inputFile);
              FileOutputStream fos = new FileOutputStream(outputFile)) {
-
-            // Записываем соль и IV в начало файла
+            // Соль + IV в начало файла
             fos.write(salt);
             fos.write(iv);
-
-            // Читаем и шифруем блоками по 8KB
+            // Шифруем блоками
             byte[] buffer = new byte[8192];
             int    read;
             while ((read = fis.read(buffer)) != -1) {
-                byte[] encrypted = cipher.update(buffer, 0, read);
-                if (encrypted != null) fos.write(encrypted);
+                byte[] enc = cipher.update(buffer, 0, read);
+                if (enc != null) fos.write(enc);
             }
-            // Финальный блок
-            byte[] finalBlock = cipher.doFinal();
-            if (finalBlock != null) fos.write(finalBlock);
+            byte[] fin = cipher.doFinal();
+            if (fin != null) fos.write(fin);
         }
+
+        // Безопасно удаляем оригинал
+        secureDelete(inputFile);
+
+        return outputFile;
     }
 
     /**
-     * Расшифровать файл.
-     * Читает соль и IV из начала .enc файла.
+     * Расшифровать .enc файл — оригинал восстанавливается рядом.
+     *
+     * Пример:
+     * /DCIM/Camera/photo.jpg.enc  →  /DCIM/Camera/photo.jpg
+     * .enc файл удаляется
      */
-    public static void decrypt(File inputFile, File outputFile, String password)
-            throws Exception {
+    public static File decryptInPlace(File encFile, String password) throws Exception {
+        // Убираем .enc из имени
+        String origName = encFile.getName().replace(ENC_EXTENSION, "");
+        File   outputFile = new File(encFile.getParent(), origName);
 
-        try (FileInputStream  fis = new FileInputStream(inputFile);
+        try (FileInputStream  fis = new FileInputStream(encFile);
              FileOutputStream fos = new FileOutputStream(outputFile)) {
 
-            // Читаем соль и IV из начала файла
             byte[] salt = new byte[SALT_SIZE];
             byte[] iv   = new byte[IV_SIZE];
             if (fis.read(salt) != SALT_SIZE) throw new Exception("Повреждённый файл");
             if (fis.read(iv)   != IV_SIZE)   throw new Exception("Повреждённый файл");
 
-            // Восстанавливаем ключ из пароля + соли
-            SecretKey key = deriveKey(password, salt);
-
-            // Расшифровываем
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            SecretKey key    = deriveKey(password, salt);
+            Cipher    cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_SIZE, iv));
 
             byte[] buffer = new byte[8192];
             int    read;
             while ((read = fis.read(buffer)) != -1) {
-                byte[] decrypted = cipher.update(buffer, 0, read);
-                if (decrypted != null) fos.write(decrypted);
+                byte[] dec = cipher.update(buffer, 0, read);
+                if (dec != null) fos.write(dec);
             }
-            byte[] finalBlock = cipher.doFinal();
-            if (finalBlock != null) fos.write(finalBlock);
+            byte[] fin = cipher.doFinal();
+            if (fin != null) fos.write(fin);
         }
+
+        // Удаляем .enc файл
+        encFile.delete();
+
+        return outputFile;
     }
 
-    /**
-     * Генерация ключа из пароля через PBKDF2.
-     * 100_000 итераций делают перебор паролей очень медленным.
-     */
     private static SecretKey deriveKey(String password, byte[] salt) throws Exception {
         KeySpec          spec    = new PBEKeySpec(password.toCharArray(), salt, ITERATIONS, KEY_SIZE);
         SecretKeyFactory factory = SecretKeyFactory.getInstance(KEY_ALGORITHM);
-        byte[]           keyBytes = factory.generateSecret(spec).getEncoded();
-        return new SecretKeySpec(keyBytes, "AES");
+        byte[]           bytes   = factory.generateSecret(spec).getEncoded();
+        return new SecretKeySpec(bytes, "AES");
     }
 
     /**
-     * Удалить файл безопасно — перезаписать нулями перед удалением.
+     * Безопасное удаление — перезаписываем нулями перед delete()
      */
     public static void secureDelete(File file) throws Exception {
-        long   length = file.length();
-        byte[] zeros  = new byte[8192];
+        long   len  = file.length();
+        byte[] zeros = new byte[8192];
         try (FileOutputStream fos = new FileOutputStream(file)) {
             long written = 0;
-            while (written < length) {
-                int toWrite = (int) Math.min(zeros.length, length - written);
+            while (written < len) {
+                int toWrite = (int) Math.min(zeros.length, len - written);
                 fos.write(zeros, 0, toWrite);
                 written += toWrite;
             }
