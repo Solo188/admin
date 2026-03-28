@@ -13,8 +13,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Device Owner Demo"
-            android:textSize="22sp"
+            android:text="SecureVault"
+            android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="#58A6FF"
             android:layout_marginBottom="4dp"/>
@@ -22,11 +22,12 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Полный контроль над устройством"
+            android:text="AES-256 шифрование файлов"
             android:textSize="13sp"
             android:textColor="#8B949E"
             android:layout_marginBottom="20dp"/>
 
+        <!-- Статус -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -46,19 +47,20 @@
 
             <TextView
                 android:id="@+id/statusText"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Загрузка..."
                 android:textSize="13sp"
                 android:textColor="#E6EDF3"
-                android:lineSpacingExtra="5dp"
+                android:lineSpacingExtra="4dp"
                 android:fontFamily="monospace"/>
         </LinearLayout>
 
+        <!-- Device Admin -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="ОСНОВНОЕ"
+            android:text="DEVICE ADMIN"
             android:textSize="11sp"
             android:textColor="#8B949E"
             android:textStyle="bold"
@@ -68,9 +70,18 @@
             android:id="@+id/btnActivateAdmin"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:text="Активировать Device Admin"
+            android:text="Активировать Admin"
             android:textColor="#FFFFFF"
             android:backgroundTint="#238636"
+            android:layout_marginBottom="8dp"/>
+
+        <Button
+            android:id="@+id/btnLock"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:text="Заблокировать экран"
+            android:textColor="#FFFFFF"
+            android:backgroundTint="#1F6FEB"
             android:layout_marginBottom="8dp"/>
 
         <Button
@@ -82,94 +93,50 @@
             android:backgroundTint="#6E7681"
             android:layout_marginBottom="20dp"/>
 
+        <!-- Шифрование -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="DEVICE ADMIN"
+            android:text="ШИФРОВАНИЕ AES-256"
             android:textSize="11sp"
             android:textColor="#8B949E"
             android:textStyle="bold"
             android:layout_marginBottom="8dp"/>
 
         <Button
-            android:id="@+id/btnLock"
+            android:id="@+id/btnSetEncPassword"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:text="Заблокировать экран"
+            android:text="Установить пароль шифрования"
             android:textColor="#FFFFFF"
-            android:backgroundTint="#1F6FEB"
-            android:layout_marginBottom="20dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="DEVICE OWNER (требует ADB/LADB)"
-            android:textSize="11sp"
-            android:textColor="#8B949E"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <Button
-            android:id="@+id/btnSetPassword"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:text="Установить пароль"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#1F6FEB"
+            android:backgroundTint="#6E40C9"
             android:layout_marginBottom="8dp"/>
 
         <Button
             android:id="@+id/btnCamera"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:text="Вкл/Выкл камеру"
+            android:text="Сфотографировать и зашифровать"
             android:textColor="#FFFFFF"
             android:backgroundTint="#1F6FEB"
             android:layout_marginBottom="8dp"/>
 
         <Button
-            android:id="@+id/btnScreenshot"
+            android:id="@+id/btnPickFile"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:text="Вкл/Выкл скриншоты"
+            android:text="Выбрать файл и зашифровать"
             android:textColor="#FFFFFF"
             android:backgroundTint="#1F6FEB"
             android:layout_marginBottom="8dp"/>
 
         <Button
-            android:id="@+id/btnGrantMic"
+            android:id="@+id/btnDecrypt"
             android:layout_width="match_parent"
             android:layout_height="44dp"
-            android:text="Выдать микрофон без диалога"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#1F6FEB"
-            android:layout_marginBottom="8dp"/>
-
-        <Button
-            android:id="@+id/btnReboot"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:text="Перезагрузить устройство"
+            android:text="Расшифровать файл"
             android:textColor="#FFFFFF"
             android:backgroundTint="#9E6A03"
-            android:layout_marginBottom="20dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="ОПАСНАЯ ЗОНА"
-            android:textSize="11sp"
-            android:textColor="#F85149"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <Button
-            android:id="@+id/btnWipe"
-            android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:text="СБРОС К ЗАВОДСКИМ"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#B62324"
             android:layout_marginBottom="20dp"/>
 
     </LinearLayout>
